@@ -27,14 +27,15 @@ sub daemonize(*@executable, Str :$cd,
     setsid();
     umask(0);
     chdir $cd with $cd;
-    my $childOUT = open($stdout, :w) or fail("Can't open $stdout for writing");
-    my $childERR = open($stderr, :w) or fail("Can't open $stderr for writing");
+    ($*IN,$*OUT,$*ERR)».close;
+    $*OUT = open($stdout, :w) or fail("Can't open $stdout for writing");
+    $*ERR = open($stderr, :w) or fail("Can't open $stderr for writing");
     if $repeat {
         loop {
-            run @executable, :out($childOUT), :err($childERR);
+            run @executable, :out($*OUT), :err($*ERR);
         }
     } else {
-        run @executable, :out($childOUT), :err($childERR);
+        run @executable, :out($*OUT), :err($*ERR);
     }
 
     with $pid-file {
