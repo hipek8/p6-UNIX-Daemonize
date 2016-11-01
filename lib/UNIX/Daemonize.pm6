@@ -3,6 +3,7 @@ unit module UNIX::Daemonize;
 use UNIX::Daemonize::NativeSymbols;
 use NativeCall;
 
+#=daemonize-self aliases do daemonize without program
 sub daemonize-self(*%kwargs) is export {
     return daemonize(%kwargs);
 }
@@ -13,26 +14,24 @@ sub daemonize(*@executable, Str :$cd, Str :$stderr='/dev/null',
         ) is export {
     my $daemonize-self = !@executable;
     if $daemonize-self {
-        fork() && exit 0; # main thread exits, daemon will its place
+        fork-or-fail() && exit 0; # main thread exits, daemon will its place
     } else {
-    say $pid-file.IO.abspath ~ ":  " ~ $pid-file.IO.e;
-        fork() && return 0; # return to main thread, daemon will do following
+        fork-or-fail() && return 0; # return to main thread, daemon will do following
     };
-    say $pid-file.IO.abspath ~ ":  " ~ $pid-file.IO.e;
     fail "Can't detach" if setsid() < 0;
-    fork() && exit 0;
-    #with %ENV {
-        #for %ENV.kv -> $k, $v {
-            #%*ENV{$k} = $v;
-        #}
-    #}
-    say $pid-file.IO.abspath ~ ":  " ~ $pid-file.IO.e;
-    chdir $cd with $cd;
-    say $pid-file.IO.abspath ~ ":  " ~ $pid-file.IO.e;
-    with $pid-file {
-        lockfile-or-fail($pid-file); #or fail "WOLOLO";   
-        "Created i think".say;
+    fork-or-fail() && exit 0;
+    with %ENV {
+        for %ENV.kv -> $k, $v {
+            %*ENV{$k} = $v;
+        }
     }
+    chdir $cd with $cd;
+    lockfile-create($pid-file) with $pid-file; 
+    # if we daemonize ourselves, remove pid when exitting
+    my $clean-after-finishing = $daemonize-self;
+    END { if $clean-after-finishing {
+        lockfile-remove("$pid-file") with $pid-file; 
+    }; };
     # setsid again to make PID == PGID
     fail "Can't detach" if setsid() < 0;
     umask(0);
@@ -40,8 +39,6 @@ sub daemonize(*@executable, Str :$cd, Str :$stderr='/dev/null',
     $*OUT = open($stdout, :w) or fail "Can't open $stdout for writing";
     $*ERR = open($stderr, :w) or fail "Can't open $stderr for writing";
     if $daemonize-self {
-        # clean up after you're done
-        END { lockfile-remove("$pid-file") with $pid-file;};
         return 0; 
     } else {
         run-main-command(:@executable, :$shell, :$repeat);
@@ -51,7 +48,6 @@ sub daemonize(*@executable, Str :$cd, Str :$stderr='/dev/null',
 }
 
 sub run-main-command(:@executable, :$shell, :$repeat) {
-    "main comm".say;
     if $repeat {
         loop {
             if !$shell {
@@ -74,24 +70,6 @@ sub run-main-command(:@executable, :$shell, :$repeat) {
 
 sub accepts-signals(Int $pid --> Bool ) is export {
     kill($pid, 0) == 0 ?? True !! False;
-}
-
-sub is-alive(Int $pid) is export {
-# alive if either kill 0 ok, or sending signals not permitted
-    if kill($pid, 0) == 0 or cglobal('libc.so.6', 'errno', int32) == 1 {
-        return True;
-    } else {
-        return False;
-    }
-}
-#=any process from process group alive?
-sub pg-alive(Int $pgid) is export {
-    is-alive(-abs($pgid));
-}
-sub fork-or-fail is export {
-    my $rv = fork();
-    return $rv if $rv >= 0; 
-    fail "Can't fork";
 }
 
 #=tries to terminate all processes from given Process Group
@@ -120,30 +98,46 @@ sub terminate-process-group-from-file(Str $pid-file, Bool :$force, Bool :$verbos
     }
 }
 
-sub pid-from-pidfile(Str $pid-file --> Int ) is export {
+sub is-alive(Int $pid) is export {
+# alive if either kill 0 ok, or sending signals not permitted
+    if kill($pid, 0) == 0 or cglobal('libc.so.6', 'errno', int32) == 1 {
+        return True;
+    } else {
+        return False;
+    }
+}
+
+#=any process from process group alive?
+sub pg-alive(Int $pgid) is export(:ALL) {
+    is-alive(-abs($pgid));
+}
+sub fork-or-fail is export(:ALL) {
+    my $rv = fork();
+    return $rv if $rv >= 0; 
+    fail "Can't fork";
+}
+
+sub pid-from-pidfile(Str $pid-file --> Int ) is export(:ALL) {
     fail ("File doesn't exist") unless $pid-file.IO.e;
     return slurp($pid-file).Int;
 }
 
-sub lockfile-or-fail($pid-file) is export {
-    say $pid-file.IO.abspath ~ ":  " ~ $pid-file.IO.e;
-    return lockfile-create($pid-file);
-}
-
-sub lockfile-valid($pid-file) is export {
+sub lockfile-valid($pid-file) is export(:ALL) {
     return False unless $pid-file.IO.abspath.IO.e;
-    my $pid = pid-from-pidfile($pid-file); # || return False;
+    my $pid = pid-from-pidfile($pid-file);
     return is-alive($pid);
 }
-sub lockfile-remove($pid-file) is export {
+
+sub lockfile-remove($pid-file) is export(:ALL) {
+    "Removing PID lockfile".say;
     try { 
         $pid-file.IO.unlink;
     }
 }
 
-sub lockfile-create($pid-file) is export {
+sub lockfile-create($pid-file) is export(:ALL) {
     my $valid =  lockfile-valid($pid-file);
-    fail ("Lockfile exists and valid") if $valid;
+    fail ("Valid lockfile exists") if $valid;
     fail ("Can't write to file $pid-file") unless $pid-file.IO.spurt($*PID);
     return True;
 }
@@ -177,12 +171,11 @@ UNIX::Daemonize is configurable daemonizing tool written in Perl 6.
 
 Requirements:
 
- * POSIX compliant OS
+ * POSIX compliant OS (fork, umask, setsid …)
  * Perl6
- * liblockfile1 
  * xcowsay to run demo above :)
 
-...
+(WIP)
 
 =head1 BUGS / CONTRIBUTING
 
@@ -192,7 +185,7 @@ Even better if you could fork and correct it…
 
 TODO: 
 
- * remove liblockfile dependency (?)
+ * write spec.
 
 =head1 AUTHOR
 

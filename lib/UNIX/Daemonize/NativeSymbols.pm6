@@ -1,5 +1,6 @@
-use NativeCall;
+use v6;
 unit module UNIX::Daemonize::NativeSymbols;
+use NativeCall;
 sub fork() returns int32 is native is export {};
 sub kill(int32, int32) returns int32 is native is export {};
 sub setsid() returns int32 is native is export {};

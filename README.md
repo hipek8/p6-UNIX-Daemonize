@@ -27,12 +27,11 @@ UNIX::Daemonize is configurable daemonizing tool written in Perl 6.
 
 Requirements:
 
-    * POSIX compliant OS
+    * POSIX compliant OS (fork, umask, setsid …)
     * Perl6
-    * liblockfile1 
     * xcowsay to run demo above :)
 
-...
+(WIP)
 
 BUGS / CONTRIBUTING
 ===================
@@ -43,7 +42,7 @@ Even better if you could fork and correct it…
 
 TODO: 
 
-    * remove liblockfile dependency (?)
+    * write spec.
 
 AUTHOR
 ======

@@ -1,7 +1,6 @@
 use v6;
 use Test;
-use UNIX::Daemonize;
-plan 4;
+use UNIX::Daemonize :ALL;
 # /sbin/init should be alive ;)
 subtest {
     ok is-alive(1);
@@ -38,10 +37,12 @@ subtest {
 subtest {
     my $pidlockfile = ".tmp.lock";
     daemonize(<sleep 3>, :pid-file($pidlockfile));
-    dies-ok {daemonize(<sleep 3>, :pid-file($pidlockfile));}, "Wont create second";
-    ok UNIX::Daemonize::lockfile-valid($pidlockfile);
+    sleep 0.5;
+    daemonize(«rm $pidlockfile», :pid-file($pidlockfile)); #, "This won't start";
+    sleep 0.5;
+    ok lockfile-valid($pidlockfile);
     sleep 3;
-    nok UNIX::Daemonize::lockfile-valid($pidlockfile);
+    nok lockfile-valid($pidlockfile);
 }, "Won't create second daemon";
 
 done-testing;
