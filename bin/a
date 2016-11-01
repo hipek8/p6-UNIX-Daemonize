@@ -1,0 +1,5 @@
+use UNIX::Daemonize;
+daemonize(:pid-file</var/lock/mycow>);
+Promise.in(15).then({exit 0;});
+loop { qq:x/xcowsay moo/; }
+
