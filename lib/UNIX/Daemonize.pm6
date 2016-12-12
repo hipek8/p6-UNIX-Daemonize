@@ -97,12 +97,22 @@ sub terminate-process-group-from-file(Str $pid-file, Bool :$force, Bool :$verbos
     }
 }
 
+#=alive if either kill 0 ok, or sending signals not permitted
 sub is-alive(Int $pid) is export {
-# alive if either kill 0 ok, or sending signals not permitted
-    if kill($pid, 0) == 0 or cglobal('libc.so.6', 'errno', int32) == 1 {
-        return True;
+
+    # hopefully this works
+    if $*DISTRO eq 'darwin' {
+        if kill($pid, 0) == 0 or cglobal('libc.dylib', 'errno', int32) == 1 {
+            return True;
+        } else {
+            return False;
+        }
     } else {
-        return False;
+        if kill($pid, 0) == 0 or cgobal('libc.so.6', 'errno', int32) == 1 {
+            return True;
+        } else {
+            return False;
+        }
     }
 }
 
