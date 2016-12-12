@@ -100,7 +100,7 @@ sub terminate-process-group-from-file(Str $pid-file, Bool :$force, Bool :$verbos
 #=alive if either kill 0 ok, or sending signals not permitted
 sub is-alive(Int $pid) is export {
 
-    # hopefully this works
+    # TODO: add real osx support to whole module
     if $*KERNEL.name eq 'darwin' {
         if kill($pid, 0) == 0 or cglobal('libc.dylib', 'errno', int32) == 1 {
             return True;
@@ -205,6 +205,7 @@ Let me know if you find any bug (not that I'll be surprised…). If you can corr
 KNOWN ISSUES:
 
 =item stdout/stderr redirects ignored when running shell set to True, use shell redirects
+=item tests fail for osx, investigate and add to travis
 
 =head1 AUTHOR
 

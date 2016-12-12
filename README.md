@@ -57,6 +57,8 @@ KNOWN ISSUES:
 
   * stdout/stderr redirects ignored when running shell set to True, use shell redirects
 
+  * tests fail for osx, investigate and add to travis
+
 AUTHOR
 ======
 
