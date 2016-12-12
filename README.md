@@ -1,10 +1,5 @@
 [![Build Status](https://travis-ci.org/hipek8/p6-UNIX-Daemonize.svg?branch=master)](https://travis-ci.org/hipek8/p6-UNIX-Daemonize)
 
-class ->  { #`(Block|100769080) ... }
--------------------------------------
-
-returns False if process doesn't exist or we don't have permissions to send signals to it
-
 NAME
 ====
 

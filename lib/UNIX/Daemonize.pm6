@@ -65,8 +65,8 @@ sub run-main-command(:@executable, :$shell, :$repeat) {
     }
 }
 
-#= returns False if process doesn't exist or 
-#= we don't have permissions to send signals to it
+#=returns False if process doesn't exist or 
+#=we don't have permissions to send signals to it
 sub accepts-signals(Int $pid --> Bool ) is export {
     kill($pid, 0) == 0 ?? True !! False;
 }
