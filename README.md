@@ -1,5 +1,10 @@
 [![Build Status](https://travis-ci.org/hipek8/p6-UNIX-Daemonize.svg?branch=master)](https://travis-ci.org/hipek8/p6-UNIX-Daemonize)
 
+class ->  { #`(Block|100769080) ... }
+-------------------------------------
+
+returns False if process doesn't exist or we don't have permissions to send signals to it
+
 NAME
 ====
 
@@ -11,16 +16,25 @@ SYNOPSIS
     use UNIX::Daemonize;
     daemonize(<xcowsay mooo>, :repeat, :pid-file</var/lock/mycow>);
 
-Then if you're not a fan of cows repeatedly jumping at you 
+Then, if you're not a fan of cows repeatedly jumping at you 
 
     terminate-process-group-from-file("/var/lock/mycow");
 
-You can also daemonize code to be run after daemonize call (note no positional arguments):
+This daemon is actually 2 processes: perl6 script you ran above, and external command 'xcowsay', 'mooo'  both same process group. That's why we're terminating whole PG
+
+You can also daemonize Perl6 code to be run after daemonize call (note no positional arguments):
 
     use UNIX::Daemonize;
     daemonize(:pid-file</var/lock/mycow>);
     Promise.in(15).then({exit 0;});
     loop { qq:x/xcowsay moo/; }
+
+`daemonize` binary provided too – you can daemonize directly from shell:
+
+    $ daemonize --pid-file='lock' --repeat xcowsay moo
+    $ kill -15 -`cat lock` && rm lock
+
+Negative PID kills whole PGID
 
 DESCRIPTION
 ===========
@@ -40,15 +54,13 @@ Requirements:
 BUGS / CONTRIBUTING
 ===================
 
-Repo can be found [https://github.com/hipek8/p6-UNIX-Daemonize](https://github.com/hipek8/p6-UNIX-Daemonize).
+Repo can be found [https://github.com/hipek8/p6-UNIX-Daemonize](https://github.com/hipek8/p6-UNIX-Daemonize). Feel free to contribute.
 
-Let me know if you find any bug.
+Let me know if you find any bug (not that I'll be surprised…). If you can correct it, PR is our friend.
 
-Even better if you could fork and correct it…
+KNOWN ISSUES:
 
-TODO: 
-
-  * write spec.
+  * stdout/stderr redirects ignored when running shell set to True, use shell redirects
 
 AUTHOR
 ======

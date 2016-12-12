@@ -27,7 +27,7 @@ sub daemonize(*@executable, Str :$cd, Str :$stderr='/dev/null',
     }
     chdir $cd with $cd;
     lockfile-create($pid-file) with $pid-file; 
-    # if we daemonize ourselves, remove pid when exitting
+    # if we daemonize ourselves, remove pidfile when exitting
     my $clean-after-finishing = $daemonize-self;
     END { if $clean-after-finishing {
         lockfile-remove("$pid-file") with $pid-file; 
