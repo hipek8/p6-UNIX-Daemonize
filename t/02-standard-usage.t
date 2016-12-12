@@ -6,6 +6,7 @@ subtest {
     ok is-alive(1);
 };
 
+diag 'Testing on ' ~ $*KERNEL.name;
 subtest {
     my $pidlockfile = ".tmp.lock";
     daemonize(<sleep 2>, :pid-file($pidlockfile));
