@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/hipek8/p6-UNIX-Daemonize.svg?branch=master)](https://travis-ci.org/hipek8/p6-UNIX-Daemonize)
+
 NAME
 ====
 
@@ -27,14 +29,18 @@ UNIX::Daemonize is configurable daemonizing tool written in Perl 6.
 
 Requirements:
 
-    * POSIX compliant OS (fork, umask, setsid …)
-    * Perl6
-    * xcowsay to run demo above :)
+  * POSIX compliant OS (fork, umask, setsid …)
+
+  * Perl6
+
+  * xcowsay to run demo above :)
 
 (WIP)
 
 BUGS / CONTRIBUTING
 ===================
+
+Repo can be found [https://github.com/hipek8/p6-UNIX-Daemonize](https://github.com/hipek8/p6-UNIX-Daemonize).
 
 Let me know if you find any bug.
 
@@ -42,7 +48,7 @@ Even better if you could fork and correct it…
 
 TODO: 
 
-    * write spec.
+  * write spec.
 
 AUTHOR
 ======

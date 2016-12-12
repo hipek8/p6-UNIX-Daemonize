@@ -6,20 +6,6 @@ sub kill(int32, int32) returns int32 is native is export {};
 sub setsid() returns int32 is native is export {};
 sub getpgid(int32) returns int32 is native is export {};
 sub umask(uint32) returns uint32 is native is export {};
-#sub lockfile_create(Str, int32, int32) returns int32 is native('lockfile') is export {};
-#sub lockfile_remove(Str) returns int32 is native('lockfile') is export {};
-#sub lockfile_touch(Str) returns int32 is native('lockfile') is export {};
-#sub lockfile_check(Str, int32) returns int32 is native('lockfile') is export {};
-
-#enum Lockfile-Return is export (
-     #L_SUCCESS  => 0,
-     #L_NAMELEN  => 1,
-     #L_TMPLOCK  => 2,
-     #L_TMPWRITE => 3,
-     #L_MAXTRYS  => 4,
-     #L_ERROR    => 5,
-     #L_MANLOCK  => 6
-    #);
 
 enum SignalNumbers is export (
        HUP   =>  1,  

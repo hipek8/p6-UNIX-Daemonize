@@ -10,13 +10,13 @@ sub daemonize-self(*%kwargs) is export {
 
 sub daemonize(*@executable, Str :$cd, Str :$stderr='/dev/null', 
         Str :$stdout='/dev/null', :%ENV, Str :$pid-file,
-        Bool :$repeat, Bool :$shell,
+        Bool :$repeat=False, Bool :$shell=False,
         ) is export {
     my $daemonize-self = !@executable;
     if $daemonize-self {
-        fork-or-fail() && exit 0; # main thread exits, daemon will its place
+        fork-or-fail() && exit 0; # main thread exits, daemon will take its place
     } else {
-        fork-or-fail() && return 0; # return to main thread, daemon will do following
+        fork-or-fail() && return 0; # return to main thread
     };
     fail "Can't detach" if setsid() < 0;
     fork-or-fail() && exit 0;
@@ -32,8 +32,8 @@ sub daemonize(*@executable, Str :$cd, Str :$stderr='/dev/null',
     END { if $clean-after-finishing {
         lockfile-remove("$pid-file") with $pid-file; 
     }; };
-    # setsid again to make PID == PGID
-    fail "Can't detach" if setsid() < 0;
+
+    fail "Can't detach" if setsid() < 0;  # not really necessary but it makes PID == PGID
     umask(0);
     ($*OUT,$*ERR,$*IN)».close;
     $*OUT = open($stdout, :w) or fail "Can't open $stdout for writing";
@@ -51,30 +51,29 @@ sub run-main-command(:@executable, :$shell, :$repeat) {
     if $repeat {
         loop {
             if !$shell {
-                run @executable, :out($*OUT), :err($*ERR);
-            }
-            else {
+                run |@executable, :out($*OUT), :err($*ERR);
+            } else {
                 shell @executable.join(' ');
             }
         }
     } else {
         if !$shell {
-            run @executable, :out($*OUT), :err($*ERR);
-        }
-        else {
+            run |@executable, :out($*OUT), :err($*ERR);
+        } else {
             shell @executable.join(' ');
         }
     }
 }
 
-
+#= returns False if process doesn't exist or 
+#= we don't have permissions to send signals to it
 sub accepts-signals(Int $pid --> Bool ) is export {
     kill($pid, 0) == 0 ?? True !! False;
 }
 
 #=tries to terminate all processes from given Process Group
 #=Int $pgid - PGID of processes to kill
-#=Bool :$force - SIGKILL is sent instead SIGTERM
+#=Bool :$force - SIGKILL is sent instead of SIGTERM
 #=Bool :$verbose - be verbose
 #=Num :$timeout - NOT IMPLEMENTED! fails if after $timeout seconds some processes still alive 
 sub terminate-process-group(Int $pgid, Bool :$force, Bool :$verbose, Num :$timeout) is export {
@@ -111,6 +110,7 @@ sub is-alive(Int $pid) is export {
 sub pg-alive(Int $pgid) is export(:ALL) {
     is-alive(-abs($pgid));
 }
+
 sub fork-or-fail is export(:ALL) {
     my $rv = fork();
     return $rv if $rv >= 0; 
@@ -153,17 +153,26 @@ sub lockfile-create($pid-file) is export(:ALL) {
   use UNIX::Daemonize;
   daemonize(<xcowsay mooo>, :repeat, :pid-file</var/lock/mycow>);
 
-Then if you're not a fan of cows repeatedly jumping at you 
+Then, if you're not a fan of cows repeatedly jumping at you 
 
   terminate-process-group-from-file("/var/lock/mycow");
 
-You can also daemonize code to be run after daemonize call (note no positional arguments):
+This daemon is actually 2 processes: perl6 script you ran above, and external command 'xcowsay', 'mooo' 
+both same process group. That's why we're terminating whole PG
+
+You can also daemonize Perl6 code to be run after daemonize call (note no positional arguments):
     
   use UNIX::Daemonize;
   daemonize(:pid-file</var/lock/mycow>);
   Promise.in(15).then({exit 0;});
   loop { qq:x/xcowsay moo/; }
 
+C<daemonize> binary provided too – you can daemonize directly from shell:
+
+  $ daemonize --pid-file='lock' --repeat xcowsay moo
+  $ kill -15 -`cat lock` && rm lock
+
+Negative PID kills whole PGID
 
 =head1 DESCRIPTION
 
@@ -171,21 +180,21 @@ UNIX::Daemonize is configurable daemonizing tool written in Perl 6.
 
 Requirements:
 
- * POSIX compliant OS (fork, umask, setsid …)
- * Perl6
- * xcowsay to run demo above :)
+=item POSIX compliant OS (fork, umask, setsid …)
+=item Perl6
+=item xcowsay to run demo above :)
 
 (WIP)
 
 =head1 BUGS / CONTRIBUTING
 
-Let me know if you find any bug.
+Repo can be found L<https://github.com/hipek8/p6-UNIX-Daemonize>. Feel free to contribute.
 
-Even better if you could fork and correct it…
+Let me know if you find any bug (not that I'll be surprised…). If you can correct it, PR is our friend.
 
-TODO: 
+KNOWN ISSUES:
 
- * write spec.
+=item stdout/stderr redirects ignored when running shell set to True, use shell redirects
 
 =head1 AUTHOR
 

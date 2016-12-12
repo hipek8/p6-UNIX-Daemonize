@@ -1,3 +1,5 @@
+*.sw[po]
+
 /blib/
 /src/*.o
 /src/Makefile
