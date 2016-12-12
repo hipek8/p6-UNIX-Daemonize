@@ -101,14 +101,14 @@ sub terminate-process-group-from-file(Str $pid-file, Bool :$force, Bool :$verbos
 sub is-alive(Int $pid) is export {
 
     # hopefully this works
-    if $*DISTRO eq 'darwin' {
+    if $*DISTRO.name eq 'darwin' {
         if kill($pid, 0) == 0 or cglobal('libc.dylib', 'errno', int32) == 1 {
             return True;
         } else {
             return False;
         }
     } else {
-        if kill($pid, 0) == 0 or cgobal('libc.so.6', 'errno', int32) == 1 {
+        if kill($pid, 0) == 0 or cglobal('libc.so.6', 'errno', int32) == 1 {
             return True;
         } else {
             return False;
